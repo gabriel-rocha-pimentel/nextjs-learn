@@ -1,0 +1,36 @@
+{
+  "folders": [
+    {
+      "path": "frontend"
+    }
+  ],
+  "settings": {
+    // Ignorar arquivos e pastas em mudanças e buscas
+    "files.watcherExclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/.git": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/.git": true
+    },
+
+    // Formatação automática ao salvar
+    "editor.formatOnSave": true,
+
+    // Definir o formatação padrão como Prettier
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+    // Configurar validação do ESLint
+    "eslint.validate": ["javascript", "typescript", "typescriptreact"],
+
+    // Desativar sugestões para linguagens que não estão sendo usadas
+    "editor.suggest.showPython": false,
+    "editor.suggest.showPHP": false,
+
+    // Desabilitar atualizações automáticas de extensões
+    "extensions.autoUpdate": false
+  }
+}
