@@ -30,7 +30,7 @@ export default function Page() {
           </Link>
         </div>
         <div className="flex items-center justify-center p-6 md:w-3/5 md:px-28 md:py-12">
-          <img 
+          <Image 
             src='/hero-desktop.png' 
             width={1000}
             height={760}
@@ -38,7 +38,7 @@ export default function Page() {
             alt='Screenshorts of the deashboard project showing desktop version'
           />
           
-          <img 
+          <Image 
             src='/hero-mobile.png' 
             width={560}
             height={620}
