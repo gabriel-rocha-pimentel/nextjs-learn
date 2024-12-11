@@ -9,10 +9,12 @@ import {
 import { Button } from '@/app/ui/button';
 import { createCustomer, State } from '@/app/lib/actionsCustomers';
 import { useActionState } from 'react';
+import { CustomerField } from '@/app/lib/definitions';
 
-export default function Form() {
+export default function Form({ customers }: { customers: CustomerField[] }) {
   const initialState: State = { message: null, errors: {} };
   const [state, formAction] = useActionState(createCustomer, initialState);
+  console.log(customers);
   
   return (
     <form action={formAction}>
