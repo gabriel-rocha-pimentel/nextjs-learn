@@ -7,16 +7,12 @@ import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 
-// Schema of form creation 
+// Schema of form creation invoices
 const formSchema = z.object({
   id: z.string(),
-  customerId: z.string({
-    invalid_type_error: 'Please select a customer.',
-  }), 
-  amount: z.coerce.number().gt(0, { message: 'Please enter an amount greater than $0. '}),
-  status: z.enum(['pending', 'paid'], {
-    invalid_type_error: 'Please select an invoice status',
-  }),
+  customerId: z.string({ invalid_type_error: 'Please select a customer.'}),
+  amount: z.coerce.number().gt(0, { message: 'Please enter an amount greater than $0.'}),
+  status: z.enum(['pending', 'paid'], { invalid_type_error: 'Please select an invoice status.'}),
   date: z.string(),
 });
 
@@ -30,29 +26,31 @@ export type State = {
 };
 
 // Create Invoices
+
 const CreateInvoice = formSchema.omit({ id: true, date: true });
 
 export async function createInvoice(prevState: State, formData: FormData) {
+
   // Validate form using Zod
   const validatedFields = CreateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
     status: formData.get('status'),
   });
-
+  
   // If form validation fails, return errors early. Otherwhise, continue.
   if(!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
       message: 'Missing Fields, Failed To Create Invoice.',
     };
-  } 
-
+  }
+  
   // Prepare data for insertion into the database.
   const { customerId, amount, status } = validatedFields.data;
   const amountInCents = Number(amount) * 100;
   const date = new Date().toISOString().split('T')[0];
-
+  
   // Inser data into database.
   try {
     await sql`
@@ -63,9 +61,9 @@ export async function createInvoice(prevState: State, formData: FormData) {
     // If a database error occurs, return a more especific error.
     return { message: `Database Error: Failed to Create Invoice. The error is:\n${error}` };
   }
-
+  
   // Revalidate the the cache for the invoices page and redirect the user.
-  revalidatePath('/dashboard/invoices');
+  await revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
 
@@ -101,7 +99,7 @@ export async function updateInvoice(id: string, prevState: State, formData: Form
     return { message: `Database Error: Failed To Update Invoice.` };
   }
 
-  revalidatePath('/dashboard/invoices');
+  await revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
 
@@ -116,7 +114,6 @@ export async function deleteInvoice(id: string) {
     return { message: `Database Error: Failed To Delete Invoice, the error is ${error}.` };
   }
 }
-
 
 export async function authenticate(prevState: string | undefined, formData: FormData) {
   try {

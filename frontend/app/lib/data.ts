@@ -119,6 +119,7 @@ export async function fetchFilteredInvoices(
   }
 }
 
+
 export async function fetchInvoicesPages(query: string) {
   try {
     const count = await sql`SELECT COUNT(*)
@@ -170,7 +171,9 @@ export async function fetchCustomers() {
     const data = await sql<CustomerField>`
       SELECT
         id,
-        name
+        name,
+        email,
+        image_url
       FROM customers
       ORDER BY name ASC
     `;
@@ -198,7 +201,7 @@ export async function fetchFilteredCustomers(query: string) {
 		LEFT JOIN invoices ON customers.id = invoices.customer_id
 		WHERE
 		  customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`}
+      customers.email ILIKE ${`%${query}%`}
 		GROUP BY customers.id, customers.name, customers.email, customers.image_url
 		ORDER BY customers.name ASC
 	  `;
