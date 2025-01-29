@@ -13,7 +13,6 @@ import { useActionState } from "react";
 
 export default function EditCustomerForm({
   customer,
-  customers,
 }: {
   customer: CustomerField;
   customers: CustomerField[];
