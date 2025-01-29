@@ -3,10 +3,10 @@ module.exports = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'br.web.img2.acsta.net', // Sem o 'https://'
-        port: '', // Mantenha vazio se não houver porta específica
-        pathname: '/**', // Ajuste conforme necessário para combinar com os caminhos da URL
+        hostname: 'i.ibb.co', // Apenas o domínio
+        port: '', // Mantenha vazio se não houver uma porta específica
+        pathname: '/**', // Aceita todas as imagens do domínio
       },
     ],
   },
-}
+};

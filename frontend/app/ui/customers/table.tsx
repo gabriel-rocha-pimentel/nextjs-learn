@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { UpdateInvoice, DeleteInvoice } from '@/app/ui/invoices/buttons';
+import { DeleteCustomers, UpdateCustomers } from '@/app/ui/customers/buttons';
 import { fetchFilteredCustomers } from '@/app/lib/data';
 
 export default async function CustomersTable({ query }: { query: string; }) {
@@ -63,8 +63,8 @@ export default async function CustomersTable({ query }: { query: string; }) {
                   </td>
                   <td className="whitespace-nowrap py-3 pl-6 pr-3">
                     <div className="flex justify-end gap-3">
-                      <UpdateInvoice id={customer.id} />
-                      <DeleteInvoice id={customer.id} />
+                      <UpdateCustomers id={customer.id} />
+                      <DeleteCustomers id={customer.id} />
                     </div>
                   </td>
                 </tr>
