@@ -56,15 +56,15 @@ Antes de começar, você precisará ter instalado em seu ambiente:
    ```  
 3. Instale as dependências:  
    ```bash
-   npm install
+   pnpm install
    ```  
 4. Configure as variáveis de ambiente:  
-   - Renomeie o arquivo `.env.example` para `.env.local`  
+   - Renomeie o arquivo `.env.example` para `.env`  
    - Preencha as variáveis de acordo com seu banco de dados e autenticação  
 
 5. Inicie o servidor de desenvolvimento:  
    ```bash
-   npm run dev
+   pnpm run dev
    ```  
 6. Acesse o projeto no navegador:  
    ```

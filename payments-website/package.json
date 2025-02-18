@@ -12,6 +12,7 @@
     "@vercel/postgres": "^0.8.0",
     "autoprefixer": "10.4.19",
     "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.1",
     "clsx": "^2.1.1",
     "dotenv": "^16.4.7",
     "next": "15.0.4-canary.36",
