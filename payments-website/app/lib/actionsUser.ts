@@ -5,8 +5,6 @@ import { sql } from '@vercel/postgres';
 import bcrypt from 'bcryptjs'; // Importando bcrypt para hashing da senha
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { signIn } from '@/auth';
-import { AuthError } from 'next-auth';
 
 // Schema de validação do formulário de criação de usuário
 const formSchema = z.object({
@@ -67,67 +65,34 @@ export async function createUser(formData: FormData) {
   redirect('/dashboard/login');
 }
 
-/*
-// Update Invoices
-const UpdateInvoice = formSchema.omit({id: true, date: true});
-export async function updateInvoice(id: string, prevState: State, formData: FormData) {
-
-  const validatedFields = UpdateInvoice.safeParse({
-    customerId: formData.get('customerId'),
-    amount: formData.get('amount'),
-    status: formData.get('status'),
-  });
-
-  if(!validatedFields.success) {
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: `Missing Fields, Failed To Update Invoice`,
-    };
-  }
-
-  const { customerId, amount, status } = validatedFields.data;
-  const amountInCent = Number(amount) * 100;
-
-  try {
-    await sql`
-      UPDATE invoices
-      SET customer_id = ${customerId}, amount = ${amountInCent}, status = ${status}
-      WHERE id = ${id}
-    `;
-
-  } catch (error) {
-    console.log(error);
-    return { message: `Database Error: Failed To Update Invoice.` };
-  }
-
-  await revalidatePath('/dashboard/invoices');
-  redirect('/dashboard/invoices');
-}
-
-//Delete Invoices
-export async function deleteInvoice(id: string) {
-  try {
-    await sql`DELETE from invoices WHERE id = ${id}`;
-    revalidatePath('/dashboard/invoices');
-    
-    return { message: 'Delete Invoice sussefull!' };
-  } catch (error) {
-    return { message: `Database Error: Failed To Delete Invoice, the error is ${error}.` };
-  }
-}
-*/
 export async function authenticate(prevState: string | undefined, formData: FormData) {
   try {
-    await signIn('credentials', formData);
-  } catch (error) {
-    if(error instanceof AuthError) {
-      switch(error.type) {
-        case 'CredentialsSignin':
-          return 'Invalid credentials.';
-        default:
-          return 'Something went wrong.';
-      }
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    if (!email || !password) {
+      return 'Email e senha são obrigatórios.';
     }
-    throw error;
+
+    // Consulta o banco para encontrar o usuário pelo email
+    const result = await sql`SELECT * FROM users WHERE email = ${email} LIMIT 1`;
+    const user = result.rows[0];
+
+    if (!user) {
+      return 'Usuário não encontrado.';
+    }
+
+    // Verifica se a senha fornecida corresponde à armazenada
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return 'Credenciais inválidas.';
+    }
+
+    // Se tudo estiver correto, redireciona para o dashboard
+    redirect('/dashboard');
+
+  } catch (error) {
+    return `Erro ao tentar autenticar. Tente novamente mais tarde. O erro foi ${error}`;
   }
 }

@@ -3,8 +3,6 @@ import { date, z } from 'zod';
 import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { signIn } from '@/auth';
-import { AuthError } from 'next-auth';
 import { auth } from "@/auth";
 
 // Schema de validação para os campos do formulário de criação de cliente
@@ -154,21 +152,5 @@ export async function deleteCustomers(id: string) {
     return { message: 'Customer deleted successfully!' };
   } catch (error) {
     return { message: `Database Error: Failed To Delete Customer, the error is ${error}.` };
-  }
-}
-
-export async function authenticate(prevState: string | undefined, formData: FormData) {
-  try {
-    await signIn('credentials', formData);
-  } catch (error) {
-    if(error instanceof AuthError) {
-      switch(error.type) {
-        case 'CredentialsSignin':
-          return 'Invalid credentials.';
-        default:
-          return 'Something went wrong.';
-      }
-    }
-    throw error;
   }
 }
