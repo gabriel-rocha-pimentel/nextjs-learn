@@ -90,6 +90,7 @@ export async function authenticate(prevState: string | undefined, formData: Form
     }
 
     // Se tudo estiver correto, redireciona para o dashboard
+    revalidatePath('/dashboard');
     redirect('/dashboard');
 
   } catch (error) {
