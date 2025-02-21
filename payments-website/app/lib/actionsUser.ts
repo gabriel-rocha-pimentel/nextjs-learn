@@ -5,6 +5,8 @@ import { sql } from '@vercel/postgres';
 import bcrypt from 'bcryptjs'; // Importando bcrypt para hashing da senha
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { signIn } from '@/auth';
+import { AuthError } from 'next-auth';
 
 // Schema de validação do formulário de criação de usuário
 const formSchema = z.object({
@@ -65,30 +67,18 @@ export async function createUser(formData: FormData) {
   redirect('/dashboard/login');
 }
 
-export async function authenticate(
-  prevState: string | undefined,
-  formData: FormData
-): Promise<string> {
+export async function authenticate(prevState: string | undefined, formData: FormData) {
   try {
-    const email = (formData.get('email') as string)?.trim().toLowerCase();
-    const password = formData.get('password') as string;
-
-    if (!email || !password) {
-      return 'Email e senha são obrigatórios.';
-    }
-
-    // Busca o usuário no banco de dados de forma segura
-    const result = await sql`SELECT email, password FROM users WHERE email = ${email} LIMIT 1`;
-    const user = result.rows[0];
-
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return 'Email ou senha inválidos.';
-    }
-
-    return 'success';
-
+    await signIn('credentials', formData);
   } catch (error) {
-    console.error('Erro na autenticação:', error);
-    return 'Erro ao tentar autenticar. Tente novamente mais tarde.';
+    if(error instanceof AuthError) {
+      switch(error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid credentials.';
+        default:
+          return 'Something went wrong.';
+      }
+    }
+    throw error;
   }
 }

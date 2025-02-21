@@ -9,7 +9,6 @@ import bcrypt from 'bcrypt';
 async function getUser(email: string): Promise<User | undefined> {
   try {
     const user = await sql<User>`SELECT * FROM users WHERE email=${email}`;
-    console.log("Usuário encontrado:", user.rows[0]);
     return user.rows[0];
   } catch (error) {
     console.error('Failed to fetch user:', error);
@@ -23,7 +22,6 @@ export const { auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
       async authorize(credentials) {
-        console.log("Credenciais recebidas:", credentials);
         const parsedCredentials = z
           .object({ email: z.string().email(), password: z.string().min(6) })
           .safeParse(credentials);
