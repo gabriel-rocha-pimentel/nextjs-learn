@@ -1,31 +1,46 @@
 'use server';
-import { z } from 'zod';
+import { date, z } from 'zod';
 import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
+import { auth } from "@/auth";
 
 // Schema de validação para os campos do formulário de criação de cliente
 const formSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(), // Tornar o campo id opcional
   name: z.string({ invalid_type_error: 'Name is required.'}),
   email: z.string({ invalid_type_error: 'Invalid email'}),
-  image_url: z.string({ invalid_type_error: 'Invalid image URL'}),
-  date: z.string(),
+  date: date().optional(),
 });
 
 export type State = {
   errors?: {
     name?: string[];
     email?: string[];
-    image_url?: string[];
   };
   message?: string | null;
 };
 
 // Função de criação de cliente
 export async function createCustomer(prevState: State, formData: FormData) {
+  // Pega o email do usuário logado
+  const session = await auth();
+  const email = session?.user?.email;
+  if (!email) {
+    return { message: 'Usuário não autenticado.' };
+  }
+
+  // Obtém o user_id a partir do email do usuário logado
+  const user = await sql`
+    SELECT id FROM users WHERE email = ${email}
+  `;
+  const user_id = user.rows[0]?.id;
+  if (!user_id) {
+    return { message: 'Usuário não encontrado.' };
+  }
+
   // Valida os campos do formulário usando o Zod
   const validatedFields = formSchema.safeParse({
     name: formData.get('name'),
@@ -33,7 +48,6 @@ export async function createCustomer(prevState: State, formData: FormData) {
     image_url: formData.get('image_url'),
   });
 
-  // Se a validação falhar, retorne os erros
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
@@ -41,28 +55,45 @@ export async function createCustomer(prevState: State, formData: FormData) {
     };
   }
 
-  // Prepare os dados para inserção no banco de dados
-  const { name, email, image_url } = validatedFields.data;
+  const currentDate = new Date().toISOString();
+  const { name, email: customerEmail } = validatedFields.data;
+
+  // Define uma URL padrão para a imagem
+  const image_url = 'https://i.ibb.co/W49VCbj6/profile.png';
 
   try {
-    // Insira os dados do cliente no banco de dados
+    // Insira os dados do cliente no banco de dados, atribuindo o user_id
     await sql`
-      INSERT INTO customers (name, email, image_url)
-      VALUES (${name}, ${email}, ${image_url})
+      INSERT INTO customers (name, email, image_url, user_id, date)
+      VALUES (${name}, ${customerEmail}, ${image_url}, ${user_id}, ${currentDate})
     `;
   } catch (error) {
-    // Se ocorrer um erro no banco de dados, retorne uma mensagem de erro específica
+    console.error("Erro ao inserir dados:", error);
     return { message: `Database Error: Failed to Create Customer. The error is:\n${error}` };
   }
 
-  // Revalide o cache da página de clientes e redirecione o usuário
-  await revalidatePath('/dashboard/customers');
+  revalidatePath('/dashboard/customers');
   redirect('/dashboard/customers');
 }
 
 // Update Customers
 const UpdateCustomers = formSchema.omit({id: true, date: true});
 export async function updateCustomers(id: string, prevState: State, formData: FormData) {
+  // Pega o email do usuário logado
+  const session = await auth();
+  const email = session?.user?.email;
+  if (!email) {
+    return { message: 'Usuário não autenticado.' };
+  }
+
+  // Obtém o user_id a partir do email do usuário logado
+  const user = await sql`
+    SELECT id FROM users WHERE email = ${email}
+  `;
+  const user_id = user.rows[0]?.id;
+  if (!user_id) {
+    return { message: 'Usuário não encontrado.' };
+  }
 
   const validatedFields = UpdateCustomers.safeParse({
     name: formData.get('name'),
@@ -77,31 +108,50 @@ export async function updateCustomers(id: string, prevState: State, formData: Fo
     };
   }
 
-  const { name, email, image_url } = validatedFields.data;
+  const currentDate = new Date().toISOString();
+  const { name, email: customerEmail } = validatedFields.data;
+
+  // Define uma URL padrão para a imagem
+  const image_url = 'https://i.ibb.co/W49VCbj6/profile.png';
 
   try {
     await sql`
       UPDATE customers
-      SET name = ${name}, email = ${email}, image_url = ${image_url}
-      WHERE id = ${id}
+      SET name = ${name}, email = ${customerEmail}, image_url = ${image_url}, date = ${currentDate}
+      WHERE id = ${id} AND user_id = ${user_id}
     `;
-
   } catch (error) {
     console.log(error);
     return { message: `Database Error: Failed To Update Customers.` };
   }
 
-  await revalidatePath('/dashboard/customers');
+  revalidatePath('/dashboard/customers');
   redirect('/dashboard/customers');
 }
 
 // Delete Customers
 export async function deleteCustomers(id: string) {
+  // Pega o email do usuário logado
+  const session = await auth();
+  const email = session?.user?.email;
+  if (!email) {
+    return { message: 'Usuário não autenticado.' };
+  }
+
+  // Obtém o user_id a partir do email do usuário logado
+  const user = await sql`
+    SELECT id FROM users WHERE email = ${email}
+  `;
+  const user_id = user.rows[0]?.id;
+  if (!user_id) {
+    return { message: 'Usuário não encontrado.' };
+  }
+
   try {
-    await sql`DELETE from customers WHERE id = ${id}`;
+    await sql`DELETE FROM customers WHERE id = ${id} AND user_id = ${user_id}`;
     revalidatePath('/dashboard/customers');
     
-    return { message: 'Delete Customer sussefull!' };
+    return { message: 'Customer deleted successfully!' };
   } catch (error) {
     return { message: `Database Error: Failed To Delete Customer, the error is ${error}.` };
   }
@@ -122,4 +172,3 @@ export async function authenticate(prevState: string | undefined, formData: Form
     throw error;
   }
 }
-

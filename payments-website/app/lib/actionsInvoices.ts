@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
+import { auth } from '@/auth';
 
 // Schema of form creation invoices
 const formSchema = z.object({
@@ -25,59 +26,85 @@ export type State = {
   message?: string | null;
 };
 
-// Create Invoices
-
+// Função de criação de fatura
 const CreateInvoice = formSchema.omit({ id: true, date: true });
-
 export async function createInvoice(prevState: State, formData: FormData) {
+  // Pega o email do usuário logado
+  const session = await auth();
+  const email = session?.user?.email;
+  if (!email) {
+    return { message: 'Usuário não autenticado.' };
+  }
 
-  // Validate form using Zod
+  // Obtém o user_id a partir do email do usuário logado
+  const user = await sql`
+    SELECT id FROM users WHERE email = ${email}
+  `;
+  const user_id = user.rows[0]?.id;
+  if (!user_id) {
+    return { message: 'Usuário não encontrado.' };
+  }
+
+  // Valida os campos do formulário usando o Zod
   const validatedFields = CreateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
     status: formData.get('status'),
   });
-  
-  // If form validation fails, return errors early. Otherwhise, continue.
-  if(!validatedFields.success) {
+
+  if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
       message: 'Missing Fields, Failed To Create Invoice.',
     };
   }
-  
-  // Prepare data for insertion into the database.
+
+  // Prepara os dados para inserção no banco de dados
   const { customerId, amount, status } = validatedFields.data;
   const amountInCents = Number(amount) * 100;
   const date = new Date().toISOString().split('T')[0];
-  
-  // Inser data into database.
+
   try {
+    // Inserir fatura no banco de dados, associando o user_id
     await sql`
-      INSERT INTO invoices (customer_id, amount, status, date)
-      VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
+      INSERT INTO invoices (customer_id, amount, status, date, user_id)
+      VALUES (${customerId}, ${amountInCents}, ${status}, ${date}, ${user_id})
     `;
   } catch (error) {
-    // If a database error occurs, return a more especific error.
     return { message: `Database Error: Failed to Create Invoice. The error is:\n${error}` };
   }
-  
-  // Revalidate the the cache for the invoices page and redirect the user.
-  await revalidatePath('/dashboard/invoices');
+
+  revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
 
-// Update Invoices
-const UpdateInvoice = formSchema.omit({id: true, date: true});
+// Função de atualização de fatura
+const UpdateInvoice = formSchema.omit({ id: true, date: true });
 export async function updateInvoice(id: string, prevState: State, formData: FormData) {
+  // Pega o email do usuário logado
+  const session = await auth();
+  const email = session?.user?.email;
+  if (!email) {
+    return { message: 'Usuário não autenticado.' };
+  }
 
+  // Obtém o user_id a partir do email do usuário logado
+  const user = await sql`
+    SELECT id FROM users WHERE email = ${email}
+  `;
+  const user_id = user.rows[0]?.id;
+  if (!user_id) {
+    return { message: 'Usuário não encontrado.' };
+  }
+
+  // Valida os campos do formulário usando o Zod
   const validatedFields = UpdateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
     status: formData.get('status'),
   });
 
-  if(!validatedFields.success) {
+  if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
       message: `Missing Fields, Failed To Update Invoice`,
@@ -88,28 +115,44 @@ export async function updateInvoice(id: string, prevState: State, formData: Form
   const amountInCent = Number(amount) * 100;
 
   try {
+    // Atualiza a fatura no banco de dados apenas para o usuário logado
     await sql`
       UPDATE invoices
       SET customer_id = ${customerId}, amount = ${amountInCent}, status = ${status}
-      WHERE id = ${id}
+      WHERE id = ${id} AND user_id = ${user_id}
     `;
-
   } catch (error) {
-    console.log(error);
     return { message: `Database Error: Failed To Update Invoice.` };
   }
 
-  await revalidatePath('/dashboard/invoices');
+  revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
 
-// Delete Invoices
+// Função de exclusão de fatura
 export async function deleteInvoice(id: string) {
+  // Pega o email do usuário logado
+  const session = await auth();
+  const email = session?.user?.email;
+  if (!email) {
+    return { message: 'Usuário não autenticado.' };
+  }
+
+  // Obtém o user_id a partir do email do usuário logado
+  const user = await sql`
+    SELECT id FROM users WHERE email = ${email}
+  `;
+  const user_id = user.rows[0]?.id;
+  if (!user_id) {
+    return { message: 'Usuário não encontrado.' };
+  }
+
   try {
-    await sql`DELETE from invoices WHERE id = ${id}`;
+    // Exclui a fatura no banco de dados associada ao usuário logado
+    await sql`DELETE FROM invoices WHERE id = ${id} AND user_id = ${user_id}`;
     revalidatePath('/dashboard/invoices');
     
-    return { message: 'Delete Invoice sussefull!' };
+    return { message: 'Fatura excluída com sucesso!' };
   } catch (error) {
     return { message: `Database Error: Failed To Delete Invoice, the error is ${error}.` };
   }
