@@ -2,7 +2,6 @@
 
 import { CustomerField } from "@/app/lib/definitions";
 import {
-  PhotoIcon,
   EnvelopeIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
