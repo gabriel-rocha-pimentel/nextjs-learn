@@ -65,35 +65,30 @@ export async function createUser(formData: FormData) {
   redirect('/dashboard/login');
 }
 
-export async function authenticate(prevState: string | undefined, formData: FormData) {
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData
+): Promise<string> {
   try {
-    const email = formData.get('email') as string;
+    const email = (formData.get('email') as string)?.trim().toLowerCase();
     const password = formData.get('password') as string;
 
     if (!email || !password) {
       return 'Email e senha são obrigatórios.';
     }
 
-    // Consulta o banco para encontrar o usuário pelo email
-    const result = await sql`SELECT * FROM users WHERE email = ${email} LIMIT 1`;
+    // Busca o usuário no banco de dados de forma segura
+    const result = await sql`SELECT email, password FROM users WHERE email = ${email} LIMIT 1`;
     const user = result.rows[0];
 
-    if (!user) {
-      return 'Usuário não encontrado.';
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return 'Email ou senha inválidos.';
     }
 
-    // Verifica se a senha fornecida corresponde à armazenada
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordValid) {
-      return 'Credenciais inválidas.';
-    }
-
-    // Se tudo estiver correto, redireciona para o dashboard
-    revalidatePath('/dashboard');
-    redirect('/dashboard');
+    return 'success';
 
   } catch (error) {
-    return `Erro ao tentar autenticar. Tente novamente mais tarde. O erro foi ${error}`;
+    console.error('Erro na autenticação:', error);
+    return 'Erro ao tentar autenticar. Tente novamente mais tarde.';
   }
 }
